@@ -3,19 +3,28 @@
 # todo-update the graph every 5 minutes to save memory
 # todo-store the graph image for up to 1 month(30 days)
 # todo-store the graph as per day when in a day every 5 minute it will update and use back the previous row
+import numpy as np
+from ultralytics import YOLO
+
+# todo - find better method to stream the viedo (now idea is to use json send whole thing, another idea is to use cv2.cap the whole window and stream that)
+# todo - if farmer remove the chicken from the farm and put it back (after like 1 day), ask the farmer if it is new chicken, if didnt clarify in 10 minutes then it new chicken, if farmer select old chicken then select the id from a drop down list of the old chicken that is no longer in the frame previously, allow farmer to still reassign back the id if needed
+# todo - compare the graph of all chicken to see the pattern if differ too much and persist then can label as warning, then the farmer can set whether the warning is necessary or not once they check as that might just be the chicken normal behaviour
+# todo - check on web post and request to allow communication from the rpi to the webserver
+# todo - always save the image into local storage or db every 1 hour with the label so taht in case of power outage, the farmer can reassig the chicken id back according to the pic
+
+
 import config
 import cv2
-import cvzone
 import math
-from tracker import Tracker
 
-class ChickenDetection:
-    def __init__(self):
+
+class chickenBehaviour:
+    def __init__(self, device):
         self.img = None
-        self.tracker = Tracker()
+
+
         self.x1, self.y1, self.x2, self.y2 = 0, 0, 0, 0
         self.conf = 0
-        self.FEEDER_BBOX = [550, 600, 800, 703]
         self.EATING_THRESHOLD = 0.5  # second
         self.MOVING_THRESHOLD = 50  # pixel
         self.MOVEMENT_THRESHOLD = 10  # pixel
@@ -63,7 +72,7 @@ class ChickenDetection:
                 self.anomalyDetector.detect_anomaly(result)
             self.anomalyDetector.show_graph()
             self.anomaly_last_tracked = 0
-        
+
         """
 
     def set_positions(self, box):
@@ -71,32 +80,8 @@ class ChickenDetection:
         self.x1, self.y1, self.x2, self.y2 = box.xyxy[0]
         self.x1, self.y1, self.x2, self.y2 = int(self.x1), int(self.y1), int(self.x2), int(self.y2)
 
-    def draw_bounding_box_feeder(self):
-        # bounding box for the feeder
-        color = (255, 255, 0)  # Blue bounding box
-        className = "feeder"
-        # Draw the bounding box
-        cv2.rectangle(self.img, (self.FEEDER_BBOX[0], self.FEEDER_BBOX[1]), (self.FEEDER_BBOX[2], self.FEEDER_BBOX[3]),
-                      color, 3)
-        # to see confidence value
-        cvzone.putTextRect(self.img, f'{className} ', (max(0, self.FEEDER_BBOX[0]), max(35, self.FEEDER_BBOX[1])),
-                           scale=1,
-                           thickness=1, colorR=color)
 
-    def draw_bbox(self):
-        for track in self.tracker.tracks:
-            bbox = track.bbox
-            track_id = track.track_id
 
-            # Get the x1 and y1 coordinates from the bbox
-            x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-
-            color = (255, 0, 255)  # Magenta bounding box
-
-            cv2.rectangle(self.img, (x1, y1), (x2, y2), color, 3)
-            # Print the info onto the bounding box
-            cvzone.putTextRect(self.img, f'chicken ID:{track_id}', (max(0, x1), max(35, y1)), scale=1, thickness=1)
     def detect_chicken_with_id(self):
         # Using deepsort to assign id on each chicken
         for track in self.tracker.tracks:

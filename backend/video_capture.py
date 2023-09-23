@@ -20,7 +20,10 @@ class VideoCapture:
         success, frame = self.cap.read()
         if success:
             frame = cv2.resize(frame, (1280, 720))
+        if not success:
+            return None
         return frame
+
 
     def display_frame(self, frame):
         cv2.imshow("Image", frame)

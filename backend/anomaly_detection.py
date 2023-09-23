@@ -62,7 +62,6 @@ class AnomalyDetection:
 
             # Serialize the Plotly figure to HTML
             fig_html = pio.to_html(fig, full_html=False)
-            print("it is here\n", fig_html)
             fig_html_list.append(fig_html)
 
         return fig_html_list

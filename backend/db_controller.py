@@ -2,7 +2,6 @@ import datetime
 import random
 import config
 import mysql.connector
-import mysql.connector
 
 
 class DbController:
@@ -31,7 +30,7 @@ class DbController:
         if self.connection:
             self.connection.close()
 
-    def execute_query(self, query, values=None, haveResult=False):
+    def execute_query(self, query, values=None, have_result=False):
         cursor = self.connection.cursor(buffered=True)
         try:
             if values:
@@ -40,11 +39,12 @@ class DbController:
                 cursor.execute(query)
             self.connection.commit()
 
-            if haveResult:
+            if have_result:
                 return cursor.fetchall()  # Return the fetched result directly
         except mysql.connector.Error as error:
+            print("test")
             print(f"Error executing query: {error}")
-            if haveResult:
+            if have_result:
                 return []
         finally:
             cursor.close()
@@ -93,12 +93,16 @@ class DbController:
 
     def get_data(self, track_id, table):
         query = f"SELECT * FROM {table} WHERE id = {track_id}"
-        result = self.execute_query(query, haveResult=True)
+        result = self.execute_query(query, have_result=True)
         return result
 
     def check_chicken_id(self, track_id):
-        result = self.get_data(track_id, config.currentPosTable)
-        return result
+        query = f"SELECT id FROM chicken_list WHERE track_id = {track_id}"
+        result = self.execute_query(query, have_result=True)
+        if result:
+            return result[0][0]
+        else:
+            return None
 
     def get_x1(self, track_id, table):
         data = self.get_data(track_id, table)
@@ -143,7 +147,7 @@ class DbController:
 
     def get_log(self, track_id):
         query = f"SELECT action FROM {config.chickenActionLog} WHERE id = {track_id} ORDER BY timestamp DESC LIMIT 1"
-        data = self.execute_query(query, haveResult=True)
+        data = self.execute_query(query, have_result=True)
         if data:
             return data[0][0]
         else:
@@ -165,7 +169,7 @@ class DbController:
 
     def update_analysis(self, toUpdate, toInsert):
         query = f"SELECT * FROM {config.actionTable}"
-        result = self.execute_query(query, haveResult=True)
+        result = self.execute_query(query, have_result=True)
 
         if toUpdate:
             print("Analysis is Updated")
@@ -192,14 +196,16 @@ class DbController:
         query = f"UPDATE {config.actionTable} SET moving = 0, resting = 0, eating = 0, drinking = 0, etc = 0"
         self.execute_query(query)
 
+    """
     def get_chicken_id(self):
         query = f"SELECT id FROM {config.actionTable}"
-        result = self.execute_query(query, haveResult=True)
+        result = self.execute_query(query, have_result=True)
         return result
+    """
 
     def get_analysis_data(self, track_id, table):
         query = f"SELECT time, moving, resting, eating, drinking, etc FROM {table} WHERE id = {track_id}"
-        result = self.execute_query(query, haveResult=True)
+        result = self.execute_query(query, have_result=True)
         return result
 
     # Insert mock data into the MySQL database
@@ -243,11 +249,162 @@ class DbController:
         query = f"DELETE FROM {table} WHERE {condition}"
         return self.execute_query(query)
 
-    #def insert_image(self):
+    def insert_chicken_id(self):
+        for i in range(1, 11):
+            query = f"INSERT INTO chicken_list (id) VALUES (%s)"
+            values = (i,)
+            self.execute_query(query, values)
 
+    def update_chicken_data(self, track_id, active, last_update, x, y, w, h, class_name, confidence):
+        query = "UPDATE chicken_list SET active=%s, last_update=%s, x=%s, y=%s, w=%s, h=%s, class_name=%s, confidence=%s WHERE track_id=%s"
+        values = (
+            active,
+            last_update,
+            int(x), int(y), int(w), int(h),
+            class_name,
+            float(confidence),
+            track_id
+        )
+        print("chicken with track id ", track_id, " update successfully")
+        self.execute_query(query, values)
 
-    #def update_image(self):
+    def update_track_id(self, track_id, id):
+        query = "UPDATE chicken_list SET track_id=%s WHERE id=%s"
+        values = (
+            track_id,
+            id
+        )
+        print("chicken with track id ", track_id, " been assigned to ", id)
+        self.execute_query(query, values)
 
+    def update_id_status(self, track_id, active):
+        query = "UPDATE chicken_list SET active=%s WHERE track_id=%s"
+        values = (
+            active,
+            track_id
+        )
+        self.execute_query(query, values)
+
+    def get_chicken_track_id(self):
+        query = "SELECT track_id FROM chicken_list"
+        result = self.execute_query(query, have_result=True)
+        return [row[0] for row in result]
+
+    def get_chicken_id(self, track_id):
+        query = f"SELECT id FROM chicken_list WHERE track_id={track_id}"
+        result = self.execute_query(query, have_result=True)
+        return [row[0] for row in result]
+
+    def get_all_from_chicken_list(self):
+        query = f"SELECT * FROM chicken_list"
+        result = self.execute_query(query, have_result=True)
+        return result
+
+    def get_active_chicken_ids(self):
+        query = "SELECT track_id FROM chicken_list WHERE active = 1"
+        result = self.execute_query(query, have_result=True)
+        return [row[0] for row in result]
+
+    def get_chicken_status(self, id):
+        query = f"SELECT active FROM chicken_list WHERE id = {id}"
+        result = self.execute_query(query, have_result=True)
+        if result:
+            print(result)
+            # Check if the result list is not empty
+            return result[0][0]
+        else:
+            # Handle the case where no rows were returned from the query
+            return None  # or any other suitable value or error handling logic
+
+    def get_inactive_chicken_ids(self):
+        query = "SELECT id FROM chicken_list WHERE active = 0"
+        result = self.execute_query(query, have_result=True)
+        return [row[0] for row in result]
+
+    def get_last_appear_position(self, track_id):
+        query = f"SELECT x, y FROM chicken_list WHERE id = {track_id}"
+        result = self.execute_query(query, have_result=True)
+        if result:
+            return result[0]
+        else:
+            return None
+
+    def get_last_disappear_position(self, track_id):
+        query = f"SELECT x, y FROM chicken_list WHERE id = {track_id} AND active = 0"
+        result = self.execute_query(query, have_result=True)
+        if result:
+            return result[0]
+        else:
+            return None
+
+    def get_available_id(self):
+        query = f"SELECT id FROM chicken_list WHERE track_id = 0 LIMIT 1"
+        result = self.execute_query(query, have_result=True)
+        if result:
+            return result[0][0]
+        else:
+            return None
+
+    def remove_track_id_from_log(self, track_id):
+        query = f"DELETE FROM track_log WHERE track_id = {track_id}"
+        self.execute_query(query)
+
+    def insert_track_id_to_log(self, track_id, id, assigned_time):
+        # Check if the combination of track_id and id exists in the log table
+        query = "SELECT * FROM track_log WHERE track_id=%s AND id=%s"
+        values = (track_id, id)
+        result = self.execute_query(query, values, True)
+        if not result:
+            print("inserting id to log")
+            # If it doesn't exist, insert it into the log table
+            query = "INSERT INTO track_log (track_id, id, assigned_time) VALUES (%s, %s, %s)"
+            values = (track_id, id, assigned_time)
+            print(f"the assigned time is {assigned_time}")
+            self.execute_query(query, values)
+
+    def update_track_id_log_time(self, track_id, db_id, updated_time):
+        print("updating id to log")
+        print(f"track id {track_id}, id {db_id}, updated time {updated_time}")
+        # If it doesn't exist, insert it into the log table
+        query = "UPDATE track_log SET assigned_time=%s WHERE track_id = %s AND id = %s"
+        values = (updated_time, track_id, db_id)
+        self.execute_query(query, values)
+
+    def get_previous_id(self, track_id):
+        query = f"SELECT id FROM track_log WHERE track_id = %s ORDER BY assigned_time ASC LIMIT 1"
+        values = (track_id, )
+        result = self.execute_query(query, values, have_result=True)
+        if result:
+            return result[0][0]
+        else:
+            print("No Result")
+            return None
+
+    def get_updated_time(self, id):
+        query = f"SELECT last_update FROM chicken_list WHERE id = {id}"
+        result = self.execute_query(query, have_result=True)
+        if result:
+            return result[0][0]
+        else:
+            return None
+
+    def get_assigned_time(self, track_id):
+        query = f"SELECT assigned_time FROM track_log WHERE track_id = {track_id}"
+        result = self.execute_query(query, have_result=True)
+        if result:
+            return result[0][0]
+        else:
+            return None
+
+    def get_all_track_ids_from_log(self):
+        query = f"SELECT track_id FROM track_log"
+        result = self.execute_query(query, have_result=True)
+        if result:
+            # Extract the first element from each tuple and create a normal list
+            value = [item[0] for item in result]
+            return value
+        else:
+            return None
 
     def clear_table(self):
         query = f"DELETE FROM {config.currentPosTable}"
@@ -263,5 +420,11 @@ class DbController:
         self.execute_query(query)
         self.connection.commit()
         query = f"DELETE FROM {config.analysisTable}"
+        self.execute_query(query)
+        self.connection.commit()
+        query = f"DELETE FROM chicken_list"
+        self.execute_query(query)
+        self.connection.commit()
+        query = f"DELETE FROM track_log"
         self.execute_query(query)
         self.connection.commit()
