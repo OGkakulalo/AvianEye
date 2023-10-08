@@ -25,13 +25,13 @@ class BBox:
         self.line_color = (255, 0, 0) # blue
 
         # Set the feeder bbox parameters
-        self.feeder_bbox = [855, 260, 100, 90]
+        self.feeder_bbox = [900, 250, 100, 90]
         self.feeder_border_color = (0, 255, 255)
         self.feeder_bg_color = (0, 255, 255)  # yellow
 
         # Set the drinker bbox parameters
-        self.drinker1_bbox = [600, 200, 55, 38]
-        self.drinker2_bbox = [865, 132, 60, 40]
+        self.drinker1_bbox = [650, 190, 55, 38]
+        self.drinker2_bbox = [920, 100, 60, 40]
         self.drinker_border_color = (255, 255, 0)
         self.drinker_bg_color = (255, 255, 0)  # light blue
 
@@ -44,7 +44,7 @@ class BBox:
 
     def draw_label(self, track_id, class_name, confidence, x, y, w, h, bg_color):
         # Add your custom label with background
-        label = f"#{track_id} {class_name} Conf: {confidence:.2f}"
+        label = f"#{track_id} Conf: {confidence:.2f}"
         (label_width, label_height), _ = cv2.getTextSize(label, self.font, self.font_scale, self.line_thickness)
         bg_rect = (int(x - w / 2), int(y - h / 2) - label_height - 10,
                    int(x - w / 2) + label_width + 10, int(y - h / 2))
@@ -56,9 +56,11 @@ class BBox:
                     self.font, self.font_scale, self.font_color, self.font_thickness)
 
     def draw_polyline(self, track):
-        points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
-        cv2.polylines(self.frame, [points], isClosed=False, color=self.line_color,
-                      thickness=self.line_thickness)  # Polyline
+        # Check if 'track' is not empty before proceeding
+        if len(track) > 0:
+            points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
+            cv2.polylines(self.frame, [points], isClosed=False, color=self.line_color,
+                          thickness=self.line_thickness)  # Polyline
 
     def draw_circle(self, x, y):
         # Draw a point at the center of the tracked object

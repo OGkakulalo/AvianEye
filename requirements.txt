@@ -2,7 +2,8 @@ opencv-python~=4.8.0.76
 numpy~=1.25.2
 torch~=2.0.0+cu117
 ultralytics~=8.0.175
-mysql~=0.0.3
 pandas~=2.1.0
 matplotlib~=3.7.3
 mysql-connector~=2.2.9
+
+shapely~=2.0.1

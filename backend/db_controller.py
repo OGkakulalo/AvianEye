@@ -31,8 +31,11 @@ class DbController:
             self.connection.close()
 
     def execute_query(self, query, values=None, have_result=False):
-        cursor = self.connection.cursor(buffered=True)
+        cursor = None
+        result = []
+
         try:
+            cursor = self.connection.cursor(buffered=True)
             if values:
                 cursor.execute(query, values)
             else:
@@ -40,33 +43,17 @@ class DbController:
             self.connection.commit()
 
             if have_result:
-                return cursor.fetchall()  # Return the fetched result directly
+                result = cursor.fetchall()
         except mysql.connector.Error as error:
-            print("test")
             print(f"Error executing query: {error}")
-            if have_result:
-                return []
         finally:
-            cursor.close()
+            if cursor:
+                cursor.close()
 
-    def insert_pos(self, track_id, x1, y1, x2, y2, table):
-        query = f"INSERT INTO {table} (id, x1, y1, x2, y2) VALUES (%s, %s, %s, %s, %s)"
-        values = (
-            track_id,
-            x1, y1, x2, y2
-        )
-        self.execute_query(query, values)
-
-    def insert_action(self, track_id):
-        query = f"INSERT INTO {config.actionTable} (id, moving, resting, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s)"
-        values = (
-            track_id,
-            0, 0, 0, 0, 0
-        )
-        self.execute_query(query, values)
+        return result
 
     def insert_analysis(self, track_id):
-        query = f"INSERT INTO {config.analysisTable} (id, time, moving, resting, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        query = f"INSERT INTO {config.analysisTable} (id, time, moving, sleeping, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s, %s)"
         values = (
             track_id,
             datetime.datetime.now(),
@@ -74,65 +61,29 @@ class DbController:
         )
         self.execute_query(query, values)
 
-    def update_current_pos(self, track_id, x1, y1, x2, y2):
-        query = f"UPDATE {config.currentPosTable} SET x1 = %s, y1 = %s, x2 = %s, y2 = %s WHERE id = %s"
-        values = (x1, y1, x2, y2, track_id)
-        self.execute_query(query, values)
-        print("current position update successfully")
-
-    def update_prev_pos(self, track_id, x1, y1, x2, y2):
-        query = f"UPDATE {config.prevPosTable} SET x1 = %s, y1 = %s, x2 = %s, y2 = %s WHERE id = %s"
-        values = (x1, y1, x2, y2, track_id)
+    def update_prev_pos(self, id, x, y, w, h):
+        query = f"UPDATE {config.prevPosTable} SET x = %s, y = %s, w = %s, h = %s WHERE id = %s"
+        values = (x, y, w, h, id)
         self.execute_query(query, values)
 
-    def update_action(self, action, track_id):
+    def update_action(self, action, id):
         updates = action + " = " + action + " + 1"
-        condition = "id = " + str(track_id)
-        query = f"UPDATE {config.actionTable} SET {updates} WHERE {condition}"
+        query = f"UPDATE {config.actionTable} SET {updates} WHERE id = {id}"
         self.execute_query(query)
 
-    def get_data(self, track_id, table):
-        query = f"SELECT * FROM {table} WHERE id = {track_id}"
-        result = self.execute_query(query, have_result=True)
-        return result
-
-    def check_chicken_id(self, track_id):
-        query = f"SELECT id FROM chicken_list WHERE track_id = {track_id}"
+    def get_x(self, id, table):
+        query = f"SELECT x FROM {table} WHERE id = {id}"
         result = self.execute_query(query, have_result=True)
         if result:
             return result[0][0]
         else:
             return None
 
-    def get_x1(self, track_id, table):
-        data = self.get_data(track_id, table)
-        if data:
-            position_x = data[0][1]  # Assuming position_x is stored in the second column
-            return position_x
-        else:
-            return None
-
-    def get_y1(self, track_id, table):
-        data = self.get_data(track_id, table)
-        if data:
-            position_y = data[0][2]  # Assuming position_y is stored in the third column
-            return position_y
-        else:
-            return None
-
-    def get_x2(self, track_id, table):
-        data = self.get_data(track_id, table)
-        if data:
-            position_x = data[0][3]  # Assuming position_x is stored in the second column
-            return position_x
-        else:
-            return None
-
-    def get_y2(self, track_id, table):
-        data = self.get_data(track_id, table)
-        if data:
-            position_y = data[0][4]  # Assuming position_y is stored in the third column
-            return position_y
+    def get_y(self, id, table):
+        query = f"SELECT y FROM {table} WHERE id = {id}"
+        result = self.execute_query(query, have_result=True)
+        if result:
+            return result[0][0]
         else:
             return None
 
@@ -145,24 +96,26 @@ class DbController:
         )
         self.execute_query(query, values)
 
-    def get_log(self, track_id):
-        query = f"SELECT action FROM {config.chickenActionLog} WHERE id = {track_id} ORDER BY timestamp DESC LIMIT 1"
+    def get_log(self, id):
+        query = f"SELECT action FROM {config.chickenActionLog} WHERE id = {id} ORDER BY timestamp DESC LIMIT 1"
         data = self.execute_query(query, have_result=True)
         if data:
             return data[0][0]
         else:
             return None
 
-    def decrement_action(self, track_id, action):
+    def decrement_action(self, id, action):
         updates = action + " = " + action + " - 1"
-        condition = "id = " + str(track_id)
+        condition = "id = " + str(id)
         query = f"UPDATE {config.actionTable} SET {updates} WHERE {condition}"
         self.execute_query(query)
 
-        query = f"DELETE FROM {config.chickenActionLog} WHERE id = {track_id} ORDER BY timestamp DESC LIMIT 1"
+        # delete the action decremented from the log
+        query = f"DELETE FROM {config.chickenActionLog} WHERE id = {id} ORDER BY timestamp DESC LIMIT 1"
         self.execute_query(query)
 
     def clear_log(self):
+        print("log is cleared")
         query = f"DELETE FROM {config.chickenActionLog}"
         self.execute_query(query)
         self.connection.commit()
@@ -178,7 +131,7 @@ class DbController:
                 # Find the largest action count and corresponding action
                 max_action_count = max(row[
                                        2:])  # Skip the first column (id) and second column (time) and find the largest value in the remaining columns
-                action_names = ['moving', 'resting', 'eating', 'drinking', 'etc']
+                action_names = ['moving', 'sleeping', 'eating', 'drinking', 'etc']
                 max_action = action_names[
                     row.index(max_action_count) - 1]  # Map the index to the corresponding action name
 
@@ -193,7 +146,7 @@ class DbController:
                 self.insert_analysis(track_id)
 
         # Clear the chickenAction table action counts back to 0
-        query = f"UPDATE {config.actionTable} SET moving = 0, resting = 0, eating = 0, drinking = 0, etc = 0"
+        query = f"UPDATE {config.actionTable} SET moving = 0, sleeping = 0, eating = 0, drinking = 0, etc = 0"
         self.execute_query(query)
 
     """
@@ -204,7 +157,7 @@ class DbController:
     """
 
     def get_analysis_data(self, track_id, table):
-        query = f"SELECT time, moving, resting, eating, drinking, etc FROM {table} WHERE id = {track_id}"
+        query = f"SELECT time, moving, sleeping, eating, drinking, etc FROM {table} WHERE id = {track_id}"
         result = self.execute_query(query, have_result=True)
         return result
 
@@ -212,13 +165,13 @@ class DbController:
     def insert_mock_data(self):
         for track_id in range(1, 11):  # Generate data for 10 chicken IDs
             moving = random.randint(0, 10)
-            resting = random.randint(0, 10)
+            sleeping = random.randint(0, 10)
             eating = random.randint(0, 10)
             drinking = random.randint(0, 10)
             etc = random.randint(0, 10)
 
-            query = f"INSERT INTO {config.actionTable} (id, moving, resting, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s)"
-            values = (track_id, moving, resting, eating, drinking, etc)
+            query = f"INSERT INTO {config.actionTable} (id, moving, sleeping, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s)"
+            values = (track_id, moving, sleeping, eating, drinking, etc)
             self.execute_query(query, values)
 
         for i in range(1, 11):
@@ -227,23 +180,14 @@ class DbController:
                                                                     minutes=random.randint(0, 59),
                                                                     seconds=random.randint(0, 59))
                 moving = random.randint(0, 10)
-                resting = random.randint(0, 10)
+                sleeping = random.randint(0, 10)
                 eating = random.randint(0, 10)
                 drinking = random.randint(0, 10)
                 etc = random.randint(0, 10)
 
-                query = f"INSERT INTO {config.analysisTable} (id, time, moving, resting, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-                values = (track_id, time, moving, resting, eating, drinking, etc)
+                query = f"INSERT INTO {config.analysisTable} (id, time, moving, sleeping, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                values = (track_id, time, moving, sleeping, eating, drinking, etc)
                 self.execute_query(query, values)
-
-    def insert_log(self, track_id, action):
-        query = f"INSERT INTO {config.chickenActionLog} (id, action, timestamp) VALUES (%s, %s, %s)"
-        values = (
-            track_id,
-            action,
-            datetime.datetime.now()
-        )
-        self.execute_query(query, values)
 
     def delete_record(self, table, condition):
         query = f"DELETE FROM {table} WHERE {condition}"
@@ -252,6 +196,12 @@ class DbController:
     def insert_chicken_id(self):
         for i in range(1, 11):
             query = f"INSERT INTO chicken_list (id) VALUES (%s)"
+            values = (i,)
+            self.execute_query(query, values)
+            query = f"INSERT INTO prev_pos (id) VALUES (%s)"
+            values = (i,)
+            self.execute_query(query, values)
+            query = f"INSERT INTO {config.actionTable} (id) VALUES (%s)"
             values = (i,)
             self.execute_query(query, values)
 
@@ -406,10 +356,35 @@ class DbController:
         else:
             return None
 
+    def get_action_log(self, id, start_time, end_time, action):
+        # Assuming you have a database connection and a cursor set up
+        # Execute a query to fetch non-inactive actions within the specified time range
+        query = "SELECT action FROM action_log WHERE id = %s AND timestamp BETWEEN %s AND %s AND action != %s"
+        values = (id, start_time, end_time, action)
+        results = self.execute_query(query, values, have_result=True)
+        print("Result are ", results)
+        if results:
+            # Extract the actions from the query results
+            recorded_action = [result[0] for result in results]
+            return recorded_action
+        else:
+            return None
+
+    def update_action_by_value(self, id, action_num, action):
+        # Update the inactive actions count for the specified chicken ID in the database
+        query = f"UPDATE {config.actionTable} SET {action} = {action} + %s WHERE id = %s"
+        values = (action_num, id)
+
+        self.execute_query(query, values)
+
+    def decrement_action_by_value(self, id, action_num, action):
+        # Update the inactive actions count for the specified chicken ID in the database
+        query = f"UPDATE {config.actionTable} SET {action} = {action} - ? WHERE id = ?"
+        values = (action_num, id)
+
+        self.execute_query(query, values)
+
     def clear_table(self):
-        query = f"DELETE FROM {config.currentPosTable}"
-        self.execute_query(query)
-        self.connection.commit()
         query = f"DELETE FROM {config.actionTable}"
         self.execute_query(query)
         self.connection.commit()

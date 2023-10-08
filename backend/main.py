@@ -3,7 +3,6 @@ import cv2
 
 from chicken_detector import chickenDetector
 from torch.backends import cudnn
-from ultralytics import YOLO
 from video_capture import VideoCapture
 from bbox import BBox
 from db_controller import DbController
@@ -14,6 +13,7 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         device = torch.device("cuda")
         cudnn.benchmark = True  # Enable CuDNN benchmark for faster training (if using CuDNN)
+        print("CUDA is available")
     else:
         device = torch.device("cpu")
         print("CUDA is not available. Switching to CPU.")
@@ -26,10 +26,6 @@ if __name__ == "__main__":
     # Initialize the chicken detector
     chicken_detector = chickenDetector(device, dbController)
 
-    # Initialize the YOLOv8 model
-    model = YOLO("../model/topdownv1.pt")
-    model.to(device)
-
     """
     # Initialize the custom VideoCapture object
     video_capture = VideoCapture("../data/alpha.mp4")
@@ -40,7 +36,7 @@ if __name__ == "__main__":
     bbox = BBox()
 
     hour = 10
-    minute = 10
+    minute = 33
     date = 20230903
     exit_video = False
     dIsPressed = True
@@ -75,9 +71,6 @@ if __name__ == "__main__":
                         break  # Break out of the inner loop and open the next video
                     else:
                         bbox.set_frame(frame)
-                        bbox.draw_bbox_feeder()
-                        bbox.draw_bbox_drinker1()
-                        bbox.draw_bbox_drinker2()
 
                         if frame is not None:
                             chicken_detector.detect_chicken(frame)
