@@ -1,8 +1,9 @@
 from backend.db_controller import DbController
 
-prevPosTable = "ChickenPrevPos"
-currentPosTable = "ChickenCurrentPos"
+prevPosTable = "prev_pos"
 actionTable = "ChickenAction"
 analysisTable = "ChickenAnalysis"
-chickenActionLog = "chickenactionlog"
+chickenActionLog = "action_log"
 dbController = DbController()
+
+chicken_num = 10
