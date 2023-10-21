@@ -52,15 +52,6 @@ class DbController:
 
         return result
 
-    def insert_analysis(self, track_id):
-        query = f"INSERT INTO {config.analysisTable} (id, time, moving, sleeping, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-        values = (
-            track_id,
-            datetime.datetime.now(),
-            0, 0, 0, 0, 0
-        )
-        self.execute_query(query, values)
-
     def update_prev_pos(self, id, x, y, w, h):
         query = f"UPDATE {config.prevPosTable} SET x = %s, y = %s, w = %s, h = %s WHERE id = %s"
         values = (x, y, w, h, id)
@@ -120,74 +111,46 @@ class DbController:
         self.execute_query(query)
         self.connection.commit()
 
-    def update_analysis(self, toUpdate, toInsert):
+    def update_analysis(self):
         query = f"SELECT * FROM {config.actionTable}"
         result = self.execute_query(query, have_result=True)
 
-        if toUpdate:
-            print("Analysis is Updated")
-            for row in result:
-                track_id = row[0]  # Access the 'id' column using integer index
-                # Find the largest action count and corresponding action
-                max_action_count = max(row[
-                                       2:])  # Skip the first column (id) and second column (time) and find the largest value in the remaining columns
-                action_names = ['moving', 'sleeping', 'eating', 'drinking', 'etc']
-                max_action = action_names[
-                    row.index(max_action_count) - 1]  # Map the index to the corresponding action name
+        for row in result:
+            id = row[0]
+            # Find the largest action count and corresponding action
+            # Skip the first column (id) and second column (time) and find the largest value in the remaining columns
+            max_action_count = max(row[1:])
+
+            # make sure that the action happen frequently enough for it to be added to analysis
+            if max_action_count > 20:
+                action_names = ['inactivity', 'eating', 'drinking']
+                max_action = action_names[row.index(max_action_count) - 1]  # Map the index to the corresponding action name
 
                 updates = f"{max_action} = {max_action} + 1"
-                condition = f"id = {track_id} AND time = (SELECT MAX(time) FROM {config.analysisTable} WHERE id = {track_id})"
+                condition = f"id = {id} AND time = (SELECT MAX(time) FROM {config.analysisTable} WHERE id = {id})"
                 query = f"UPDATE {config.analysisTable} SET {updates} WHERE {condition}"
                 self.execute_query(query)
-        if toInsert:
-            print("Analysis is Added")
-            for row in result:
-                track_id = row[0]  # Access the 'id' column using integer index
-                self.insert_analysis(track_id)
 
         # Clear the chickenAction table action counts back to 0
-        query = f"UPDATE {config.actionTable} SET moving = 0, sleeping = 0, eating = 0, drinking = 0, etc = 0"
+        query = f"UPDATE {config.actionTable} SET inactivity = 0, eating = 0, drinking = 0"
         self.execute_query(query)
 
-    """
-    def get_chicken_id(self):
-        query = f"SELECT id FROM {config.actionTable}"
-        result = self.execute_query(query, have_result=True)
-        return result
-    """
-
-    def get_analysis_data(self, track_id, table):
-        query = f"SELECT time, moving, sleeping, eating, drinking, etc FROM {table} WHERE id = {track_id}"
-        result = self.execute_query(query, have_result=True)
-        return result
-
-    # Insert mock data into the MySQL database
-    def insert_mock_data(self):
-        for track_id in range(1, 11):  # Generate data for 10 chicken IDs
-            moving = random.randint(0, 10)
-            sleeping = random.randint(0, 10)
-            eating = random.randint(0, 10)
-            drinking = random.randint(0, 10)
-            etc = random.randint(0, 10)
-
-            query = f"INSERT INTO {config.actionTable} (id, moving, sleeping, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s)"
-            values = (track_id, moving, sleeping, eating, drinking, etc)
+    def insert_analysis(self):
+        for i in range(1, 11):
+            query = f"INSERT INTO {config.analysisTable} (id, time) VALUES (%s, %s)"
+            values = (i, datetime.datetime.now())
             self.execute_query(query, values)
 
-        for i in range(1, 11):
-            for track_id in range(1, 11):  # Generate data for 10 chicken IDs
-                time = datetime.datetime.now() - datetime.timedelta(hours=random.randint(0, 1),
-                                                                    minutes=random.randint(0, 59),
-                                                                    seconds=random.randint(0, 59))
-                moving = random.randint(0, 10)
-                sleeping = random.randint(0, 10)
-                eating = random.randint(0, 10)
-                drinking = random.randint(0, 10)
-                etc = random.randint(0, 10)
+    def get_analysis_data(self, id):
+        query = f"SELECT time, inactivity, eating, drinking FROM chickenanalysis WHERE id = {id} ORDER BY time ASC"
+        result = self.execute_query(query, have_result=True)
+        return result
 
-                query = f"INSERT INTO {config.analysisTable} (id, time, moving, sleeping, eating, drinking, etc) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-                values = (track_id, time, moving, sleeping, eating, drinking, etc)
-                self.execute_query(query, values)
+    def get_distinct_id(self):
+        query = "SELECT DISTINCT id FROM chickenanalysis"
+        result = self.execute_query(query, have_result=True)
+        return result
+
 
     def delete_record(self, table, condition):
         query = f"DELETE FROM {table} WHERE {condition}"
@@ -379,9 +342,8 @@ class DbController:
 
     def decrement_action_by_value(self, id, action_num, action):
         # Update the inactive actions count for the specified chicken ID in the database
-        query = f"UPDATE {config.actionTable} SET {action} = {action} - ? WHERE id = ?"
+        query = f"UPDATE {config.actionTable} SET {action} = {action} - %s WHERE id = %s"
         values = (action_num, id)
-
         self.execute_query(query, values)
 
     def clear_table(self):

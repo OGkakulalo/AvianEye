@@ -1,5 +1,4 @@
 import threading
-from datetime import datetime
 
 from ultralytics import YOLO
 
@@ -7,6 +6,7 @@ from db_controller import DbController
 from tracker import Tracker
 from bbox import BBox
 from chicken_behaviour import chickenBehaviour
+from chicken_analysis import chickenAnalysis
 
 
 class chickenDetector:
@@ -23,6 +23,8 @@ class chickenDetector:
         # Get the class mapping from your YOLO model (assuming it provides a class_map attribute)
         self.class_mapping = self.model.names
 
+        self.chickenAnalysis = chickenAnalysis(dbController)
+
         self.chickenBehaviour = chickenBehaviour(dbController)
 
         self.UPDATE_FRAME_THRESHOLD = 1 # frame
@@ -32,6 +34,8 @@ class chickenDetector:
         self.lock = threading.Lock()
 
     def detect_chicken(self, frame):
+        self.chickenBehaviour.update_threshold()
+
         results = self.tracker.get_results(frame)
         self.bbox.set_frame(frame)
 
@@ -57,7 +61,7 @@ class chickenDetector:
             if confidence > 0.5:
                 # Create a new DbController instance for each thread
                 db_controller_thread = DbController()
-                db_controller_thread.connect()  # Connect to the database
+                db_controller_thread.connect()  # Connect to the db
 
                 thread = threading.Thread(target=self.maintain_id_thread, args=(db_controller_thread, track_id, x, y, w, h, class_name, confidence))
                 thread.start()
@@ -85,12 +89,12 @@ class chickenDetector:
             confidence = data[9]
 
             # Draw bbox based on database data
-            self.bbox.draw_chicken_bbox(id, class_name, confidence, x, y, w, h)
+            self.bbox.draw_chicken_bbox(id, confidence, x, y, w, h)
 
         # Create and start threads for action detection
         threads = []
 
-        # detect every once in a while
+        # detect action every few second to increase speed
         self.last_frame_checked += 1
         can_check_action = False
         if self.last_frame_checked > self.UPDATE_FRAME_THRESHOLD:
@@ -114,7 +118,7 @@ class chickenDetector:
             if can_check_action:
                 # Create a new DbController instance for each thread
                 db_controller_thread = DbController()
-                db_controller_thread.connect()  # Connect to the
+                db_controller_thread.connect()  # Connect to the db
 
                 if id is not None:
                     thread = threading.Thread(target=self.detect_chicken_action, args=(db_controller_thread, id, x, y, w, h))
@@ -124,6 +128,10 @@ class chickenDetector:
         # Wait for all threads to finish
         for thread in threads:
             thread.join()
+
+        # update analysis
+        self.chickenAnalysis.update_threshold()
+        self.chickenAnalysis.update_analysis()
 
         # Draw the bbox for the feeder and drinker lastly
         self.bbox.draw_bbox_feeder()
@@ -140,24 +148,14 @@ class chickenDetector:
             print("chicken behaviour being analyzed")
 
             move_a_bit, move_a_lot = self.chickenBehaviour.is_moving(db_controller_thread, id, x, y, w, h)
+            if id == 10:
+                print("10 has ", move_a_bit)
 
             if self.chickenBehaviour.detect_eating_or_drinking(db_controller_thread, id, x, y, w, h, move_a_bit):
-                self.dbController.insert_log(id, "eating")
+                # insert lof is inside the detect
                 action_detected = True
-            """
-                        if self.chickenBehaviour.detect_moving(db_controller_thread, id, x, y, w, h) and not action_detected:
-                self.dbController.insert_log(id, "moving")
-                action_detected = True
-            """
-
             if self.chickenBehaviour.detect_inactivity(db_controller_thread, id, move_a_lot) and not action_detected:
-                self.dbController.insert_log(id, "sleeping")
-            """
-                        if self.chickenBehaviour.detect_etc(db_controller_thread, id, x, y, w, h) and not action_detected:
-                self.dbController.insert_log(id, "etc")
-                action_detected = True
-            """
-
+                self.dbController.insert_log(id, "inactivity")
 
     def maintain_id_thread(self, db_controller_thread, track_id, x, y, w, h, class_name, confidence):
         # Acquire the Lock to ensure that if the thread will need to wait to use the same resources(function) ensuring that clashing will not occurs

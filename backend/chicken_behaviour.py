@@ -3,15 +3,12 @@
 # todo-store the graph image for up to 1 month(30 days)
 # todo-store the graph as per day when in a day every 5 minute it will update and use back the previous row
 
-# todo - if chicken is in a group when they are near the feeder, detect all as eating
-
-# todo - find better method to stream the viedo (now idea is to use json send whole thing, another idea is to use cv2.cap the whole window and stream that)
 # todo - if farmer remove the chicken from the farm and put it back (after like 1 day), ask the farmer if it is new chicken, if didnt clarify in 10 minutes then it new chicken, if farmer select old chicken then select the id from a drop down list of the old chicken that is no longer in the frame previously, allow farmer to still reassign back the id if needed
-# todo - compare the graph of all chicken to see the pattern if differ too much and persist then can label as warning, then the farmer can set whether the warning is necessary or not once they check as that might just be the chicken normal behaviour
-# todo - check on web post and request to allow communication from the rpi to the webserver
 # todo - always save the image into local storage or db every 1 hour with the label so taht in case of power outage, the farmer can reassig the chicken id back according to the pic
 
 # todo - detect that all chicken action is successfully updated if its it waiting to check threshold before analysis open new row
+# todo - compare the graph of all chicken to see the pattern if differ too much and persist then can label as warning, then the farmer can set whether the warning is necessary or not once they check as that might just be the chicken normal behaviour
+# todo - detect change in the image color contrast to determine when to start and stop detection
 
 from datetime import datetime, timedelta
 from shapely.geometry import box
@@ -25,59 +22,30 @@ class chickenBehaviour:
         self.bbox = BBox()
         self.dbController = dbController
 
-        self.EATING_TO_INACTIVE_THRESHOLD = 20  # second
-        self.DRINKING_TO_INACTIVE_THRESHOLD = 20  # second
+        self.EATING_TO_INACTIVE_THRESHOLD = 10 * config.speed_ratio  # second
+        self.DRINKING_TO_INACTIVE_THRESHOLD = 10 * config.speed_ratio  # second
         self.MOVING_THRESHOLD = 1  # pixel
-        self.INACTIVITY_THRESHOLD = 20  # second
-        self.PROXIMITY_THRESHOLD = 10  # pixel
+        self.INACTIVITY_THRESHOLD = 20 * config.speed_ratio * config.speed_ratio  # second
         self.INSIDE_FEEDER_THRESHOLD = 50  # pixel
-        self.ANALYSIS_UPDATE_THRESHOLD = 3  # second
-        self.ANALYSIS_THRESHOLD = 2  # how many time
         self.MOVEMENT_THRESHOLD = 2  # Number of consecutive movements to detect eating or drinking
-        self.MOVEMENT_TIME_WINDOW = 20  # second
+        self.MOVEMENT_TIME_WINDOW = 20 * config.speed_ratio  # second
 
         self.movement_counter = {i: 0 for i in range(1, config.chicken_num + 1)}
         self.movement_timer = {i: datetime.now() for i in range(1, config.chicken_num + 1)}
-        self.inactive_state = {i: False for i in range(1, config.chicken_num+1)}
-        self.inactive_timer = {i: datetime.now() for i in range(1, config.chicken_num+1)}
-        self.eating_state = {i: False for i in range(1, config.chicken_num+1)}
-        self.eating_timer = {i: datetime.now() for i in range(1, config.chicken_num+1)}
+        self.inactive_state = {i: False for i in range(1, config.chicken_num + 1)}
+        self.inactive_timer = {i: datetime.now() for i in range(1, config.chicken_num + 1)}
+        self.eating_state = {i: False for i in range(1, config.chicken_num + 1)}
+        self.eating_timer = {i: datetime.now() for i in range(1, config.chicken_num + 1)}
         self.drinking_state = {i: False for i in range(1, config.chicken_num + 1)}
         self.drinking_timer = {i: datetime.now() for i in range(1, config.chicken_num + 1)}
-        self.prev_timestamp = 0
-        self.prev_start = True
-        self.analysis_updated = 0
-        self.track_id = None
 
-    def update_analysis(self):  # update the analysis table when the threshold is met
-        current_time = datetime.now()
-        if self.prev_start:
-            self.prev_timestamp = current_time
-            self.prev_start = False
+    def update_threshold(self):
+        self.EATING_TO_INACTIVE_THRESHOLD = 10 * config.speed_ratio  # second
+        self.DRINKING_TO_INACTIVE_THRESHOLD = 10 * config.speed_ratio  # second
+        self.INACTIVITY_THRESHOLD = 20 * config.speed_ratio * config.speed_ratio  # second
+        self.MOVEMENT_TIME_WINDOW = 20 * config.speed_ratio  # second
 
-        # to update the analysis table
-        print("time difference: ", current_time - self.prev_timestamp)
-        if current_time - self.prev_timestamp > self.ANALYSIS_UPDATE_THRESHOLD:
-            self.dbController.update_analysis(True, False)
-            self.prev_start = True
-            self.analysis_updated += 1
-
-        if self.analysis_updated > self.ANALYSIS_THRESHOLD:
-            self.dbController.update_analysis(False, True)
-            self.analysis_updated = 0
-        """
-        # perform anomaly detection
-        if self.analysis_updated > self.ANOMALY_THRESHOLD:
-            for row in self.dbController.get_chicken_id():
-                track_id = row[0]  # Access the 'id' column using integer index
-                result = self.dbController.get_analysis_data(track_id)
-                self.anomalyDetector.detect_anomaly(result)
-            self.anomalyDetector.show_graph()
-            self.anomaly_last_tracked = 0
-
-        """
-
-    def detect_eating_or_drinking(self, dbController, id, x, y, w, h , is_moving):
+    def detect_eating_or_drinking(self, dbController, id, x, y, w, h, is_moving):
         # Check if the chicken head is inside the feeder bounding box
         print("eating or drinking is being checked for chicken ", id)
         current_time = datetime.now()
@@ -87,9 +55,6 @@ class chickenBehaviour:
         current_timer = {}
 
         is_inside_bbox, bbox_detected = self.is_inside_feeder_or_drinker_bbox(id, x, y, w, h)
-
-        if id == 10:
-            print("bbox detected for id 10 is ", bbox_detected)
 
         # detect the chicken in feeder or drinker
         if bbox_detected == "feeder":
@@ -101,18 +66,14 @@ class chickenBehaviour:
             action = "drinking"
             current_state = self.drinking_state
             current_timer = self.drinking_timer
-            inactivity_threshold = self.EATING_TO_INACTIVE_THRESHOLD
+            inactivity_threshold = self.DRINKING_TO_INACTIVE_THRESHOLD
 
         if is_inside_bbox:
-            print("Chicken ", id, f" is in the {bbox_detected}")
-
+            print("Chicken", id, f"is in the {bbox_detected}")
+            print("Movement counter: ", self.movement_counter[id])
             # check if chicken is resting inside the feeder bbox or actually eating or drinking
             if is_moving:
-                # Increment the movement counter for the chicken
                 # movement is to detect whether the chicken is starting to drink or eat or just passing by
-                if id == 10:
-                    print(f"chicken {id} moved")
-
                 if not current_state[id]:
                     elapsed_time = current_time - self.movement_timer[id]
                     if elapsed_time.total_seconds() > self.MOVEMENT_TIME_WINDOW:
@@ -124,17 +85,10 @@ class chickenBehaviour:
 
                         # increment the sleep or drink and decrement the previously detected action in this time range
                         if self.movement_counter[id] >= self.MOVEMENT_THRESHOLD:
-                            # calculate how many count should be added for the passed time
-                            frame_num = 20  # per second
-                            processing_speed = 0.05  # second for 1 frame
-                            frame_skipped = 1
-                            total_frame = frame_num * self.MOVEMENT_THRESHOLD
-                            accumulated_action_count = total_frame * processing_speed / frame_skipped
-
                             # Update the action counts in the database
-                            dbController.update_action_by_value(id, accumulated_action_count-1, action)
+                            dbController.update_action_by_value(id, self.count_accumulated_action(self.MOVEMENT_THRESHOLD) - 1, action)
 
-                            # Fetch all actions from the database within the time range except for inactivity
+                            # Fetch all actions from the database within the time range
                             start_time = self.movement_timer[id]
                             end_time = current_time
                             recorded_action = dbController.get_action_log(id, start_time, end_time, action)
@@ -162,6 +116,7 @@ class chickenBehaviour:
                     # Reset the resting timer to the current time
                     self.inactive_timer[id] = current_time
 
+                    self.dbController.insert_log(id, action)
                     return True
             else:
                 if current_state[id]:
@@ -176,21 +131,14 @@ class chickenBehaviour:
                         # Fetch all actions from the database within the time range except for inactivity
                         recorded_action = dbController.get_action_log(id, start_time, end_time, "inactivity")
                         if recorded_action is not None:
-                            inactive_count = recorded_action.count("inactivity")
                             drinking_count = recorded_action.count("drinking")
+                            eating_count = recorded_action.count("eating")
 
-                            dbController.decrement_action_by_value(id, inactive_count, "inactivity")
                             dbController.decrement_action_by_value(id, drinking_count, "drinking")
-
-                        # calculate how many count should be added for the passed time
-                        frame_num = 20  # per second
-                        processing_speed = 0.05  # second for 1 frame
-                        frame_skipped = 1
-                        total_frame = frame_num * inactivity_threshold
-                        accumulated_action_count = total_frame * processing_speed / frame_skipped
+                            dbController.decrement_action_by_value(id, eating_count, "eating")
 
                         # Update the action counts in the database
-                        dbController.update_action_by_value(id, accumulated_action_count, action)
+                        dbController.update_action_by_value(id, self.count_accumulated_action(inactivity_threshold), "inactivity")
 
                         # Detected as inactive
                         current_state[id] = False
@@ -201,20 +149,20 @@ class chickenBehaviour:
                         self.detect_inactivity(dbController, id, is_moving)
                         return False
                     else:
-                        # Chicken is still eating
+                        # Chicken is still eating or drinking
                         dbController.update_action(action, id)
-                        current_timer[id] = current_time
 
                         # Set as not inactive
                         self.inactive_state[id] = False
                         # Reset the resting timer to the current time
                         self.inactive_timer[id] = current_time
+
+                        self.dbController.insert_log(id, action)
                         return True
         return False
 
     def detect_inactivity(self, dbController, id, is_moving):
         current_time = datetime.now()
-
         if is_moving:
             self.inactive_state[id] = False
             # reset timer
@@ -247,15 +195,8 @@ class chickenBehaviour:
                     dbController.decrement_action_by_value(id, eating_count, "eating")
                     dbController.decrement_action_by_value(id, drinking_count, "drinking")
 
-                # calculate how many count should be added for the passed time
-                frame_num = 20  # per second
-                processing_speed = 0.05  # second for 1 frame
-                frame_skipped = 1
-                total_frame = frame_num * self.INACTIVITY_THRESHOLD
-                accumulated_action_count = total_frame * processing_speed / frame_skipped
-
                 # Update the action counts in the database
-                dbController.update_action_by_value(id, accumulated_action_count, "inactivity")
+                dbController.update_action_by_value(id, self.count_accumulated_action(self.INACTIVITY_THRESHOLD), "inactivity")
 
                 self.inactive_state[id] = True
                 # Update the resting timer
@@ -328,7 +269,6 @@ class chickenBehaviour:
                 return True, bbox_detected
         return False, bbox_detected
 
-        # todo - a method to get the fps and convert the threshold to follow the fps like ratio
     def is_moving(self, dbController, id, x, y, w, h):
         print("the track id for moving\n", id, " ", config.prevPosTable)
         prev_x = dbController.get_x(id, config.prevPosTable)
@@ -344,8 +284,11 @@ class chickenBehaviour:
             print("chicken 10 moving difference ", abs(x - prev_x), " ", abs(y - prev_y))
 
         # check if chicken moved or not
+        print("chicken current and prev position")
+        print(f"{x}  {y} \n{prev_x}  {prev_y}")
         if abs(x - prev_x) > self.MOVING_THRESHOLD or abs(y - prev_y) > self.MOVING_THRESHOLD:
             dbController.update_prev_pos(id, x, y, w, h)
+            print("chicken moved a bot")
             move_a_bit = True
 
         # check if chicken move a lot
@@ -354,9 +297,10 @@ class chickenBehaviour:
 
         return move_a_bit, move_a_lot
 
-    def decrement_action(self, dbController, id):
-        actionLogged = dbController.get_log(id)
-        # loop until there is no action anymore in log
-        if actionLogged is not None:
-            print(f"Action from chicken id {id} is being decremented")
-            dbController.decrement_action(id, actionLogged)
+    def count_accumulated_action(self, inactivity_threshold):
+        # calculate how many count should be added for the passed time
+        total_frame = config.frame_num * inactivity_threshold
+        processing_speed = config.speed_ratio * config.standard_speed
+        accumulated_action_count = total_frame * processing_speed / config.frame_skipped
+
+        return accumulated_action_count
