@@ -59,8 +59,8 @@ def start_process():
     # Initialize the bbox object
     bbox = BBox()
 
-    hour = 14
-    minute = 0
+    hour = 17
+    minute = 50
     date = 20230905
     exit_video = False
     anomaly_detection_start = False
@@ -70,7 +70,7 @@ def start_process():
     analysis_start_no_anomaly = time.time()
     initial_graph_plot = time.time()
     ANALYSIS_THRESHOLD = 30  # second
-    INITIAL_GRAPH_PLOT_NO_ANOMALY_THRESHOLD = 400  # second
+    INITIAL_GRAPH_PLOT_NO_ANOMALY_THRESHOLD = 300  # second
     INITIAL_GRAPH_PLOT_THRESHOLD = 1800  # second
 
     while not exit_video:
@@ -271,6 +271,4 @@ if __name__ == "__main__":
     log.disabled = True
     task = threading.Thread(target=start_process)
     task.start()
-    app.run(host="192.168.100.67", port=5000)
-
-
+    app.run(host="192.168.1.107", port=5000)
