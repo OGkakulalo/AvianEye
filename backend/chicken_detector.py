@@ -2,6 +2,7 @@ import threading
 
 from ultralytics import YOLO
 
+import config
 from db_controller import DbController
 from tracker import Tracker
 from bbox import BBox
@@ -85,11 +86,15 @@ class chickenDetector:
             y = data[5]
             w = data[6]
             h = data[7]
-            class_name = data[8]
             confidence = data[9]
 
-            # Draw bbox based on database data
-            self.bbox.draw_chicken_bbox(id, confidence, x, y, w, h)
+            # Draw bbox based on database data and based on user option
+            if config.view_all:
+                self.bbox.draw_chicken_bbox(id, confidence, x, y, w, h)
+            else:
+                if id == config.selected_chicken_id:
+
+                    self.bbox.draw_chicken_bbox(id, confidence, x, y, w, h)
 
         # Create and start threads for action detection
         threads = []
@@ -112,8 +117,15 @@ class chickenDetector:
             h = data[7]
 
             track = self.tracker.get_track_history(track_id)
-            self.bbox.draw_polyline(track)
-            self.bbox.draw_circle(x, y)
+
+            # Draw based on user option
+            if config.view_all:
+                self.bbox.draw_polyline(track)
+                self.bbox.draw_circle(id, x, y)
+            else:
+                if id == config.selected_chicken_id:
+                    self.bbox.draw_polyline(track)
+                    self.bbox.draw_circle(id, x, y)
 
             if can_check_action:
                 # Create a new DbController instance for each thread
@@ -134,9 +146,9 @@ class chickenDetector:
         self.chickenAnalysis.update_analysis()
 
         # Draw the bbox for the feeder and drinker lastly
-        self.bbox.draw_bbox_feeder()
+        """self.bbox.draw_bbox_feeder()
         self.bbox.draw_bbox_drinker1()
-        self.bbox.draw_bbox_drinker2()
+        self.bbox.draw_bbox_drinker2()"""
 
     def detect_chicken_action(self, db_controller_thread, id, x, y, w, h):
         # Acquire the Lock to ensure exclusive access to the track_id
@@ -145,11 +157,7 @@ class chickenDetector:
             action_detected = False
 
             # detect chicken behaviour
-            print("chicken behaviour being analyzed")
-
             move_a_bit, move_a_lot = self.chickenBehaviour.is_moving(db_controller_thread, id, x, y, w, h)
-            if id == 10:
-                print("10 has ", move_a_bit)
 
             if self.chickenBehaviour.detect_eating_or_drinking(db_controller_thread, id, x, y, w, h, move_a_bit):
                 # insert lof is inside the detect

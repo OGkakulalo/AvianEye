@@ -1,15 +1,3 @@
-# todo-insert and update image of the coop every time it is processed with time frame (max 5 row then remove old update new)
-# todo-update the graph every 5 minutes to save memory
-# todo-store the graph image for up to 1 month(30 days)
-# todo-store the graph as per day when in a day every 5 minute it will update and use back the previous row
-
-# todo - if farmer remove the chicken from the farm and put it back (after like 1 day), ask the farmer if it is new chicken, if didnt clarify in 10 minutes then it new chicken, if farmer select old chicken then select the id from a drop down list of the old chicken that is no longer in the frame previously, allow farmer to still reassign back the id if needed
-# todo - always save the image into local storage or db every 1 hour with the label so taht in case of power outage, the farmer can reassig the chicken id back according to the pic
-
-# todo - detect that all chicken action is successfully updated if its it waiting to check threshold before analysis open new row
-# todo - compare the graph of all chicken to see the pattern if differ too much and persist then can label as warning, then the farmer can set whether the warning is necessary or not once they check as that might just be the chicken normal behaviour
-# todo - detect change in the image color contrast to determine when to start and stop detection
-
 from datetime import datetime, timedelta
 from shapely.geometry import box
 import config

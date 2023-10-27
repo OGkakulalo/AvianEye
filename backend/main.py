@@ -59,7 +59,7 @@ def start_process():
     # Initialize the bbox object
     bbox = BBox()
 
-    hour = 10
+    hour = 14
     minute = 0
     date = 20230905
     exit_video = False
