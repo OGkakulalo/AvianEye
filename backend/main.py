@@ -59,8 +59,8 @@ def start_process():
     # Initialize the bbox object
     bbox = BBox()
 
-    hour = 16
-    minute = 58
+    hour = 10
+    minute = 0
     date = 20230905
     exit_video = False
     anomaly_detection_start = False
