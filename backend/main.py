@@ -28,7 +28,7 @@ last_graph_modified_time = None
 # for the real system
 """DAY_TIME = datetime.time(9, 0)  # 9 AM
 NIGHT_TIME = datetime.time(18, 0)   # 6 PM"""
-# for now based on the local video data
+# for now based on the local video da- ip ta
 DAY_TIME = 9
 NIGHT_TIME = 18
 
@@ -64,7 +64,7 @@ def start_process():
     date = 20230905
     exit_video = False
     anomaly_detection_start = False
-    has_cleared = True
+    has_cleared = False
 
     analysis_start = time.time()
     analysis_start_no_anomaly = time.time()
@@ -147,9 +147,9 @@ def start_process():
                                                 graph_drawer.save_graph(id, result, data, anomaly_colors, True,
                                                                         start_end_time_list, mahalanobis_dist)
                                                 # send alert if chicken is detected as high possibility to be sick
-                                                if anomaly_colors == "red":
-                                                    anomaly_detector.send_alert(id,
-                                                                                f"./static/assets/graph/chicken_{id}.png")
+                                                if anomaly_colors:
+                                                    if anomaly_colors[0] == "red":
+                                                        anomaly_detector.send_alert(id,f"./static/assets/graph/chicken_{id}.png")
 
                                 # save plain graph after enough data is gathered
                                 if time.time() - initial_graph_plot > INITIAL_GRAPH_PLOT_NO_ANOMALY_THRESHOLD and not anomaly_detection_start:
@@ -235,7 +235,7 @@ def graph_image():
 
     global last_graph_modified_time
 
-    graph_image_path = f"./static/assets/graph/chicken.gif"
+    graph_image_path = f"./static/assets/graph/chicken_loading.gif"
     try:
         if os.path.exists(graph_image_path_png):
             graph_image_path = graph_image_path_png
@@ -270,5 +270,6 @@ if __name__ == "__main__":
     log = logging.getLogger('werkzeug')
     log.disabled = True
     task = threading.Thread(target=start_process)
+
     task.start()
-    app.run(host="192.168.1.107", port=5000)
+    app.run(host="192.168.1.104", port=5000, debug=False)

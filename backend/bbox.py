@@ -37,9 +37,9 @@ class BBox:
         # Draw your custom bounding box
         cv2.rectangle(self.frame, (int(x - w / 2), int(y - h / 2)), (int(x + w / 2), int(y + h / 2)), border_color, self.line_thickness)
 
-    def draw_label(self, track_id, confidence, x, y):
+    def draw_label(self, track_id, x, y):
         # Add custom label
-        label = f"#{track_id} {confidence:.2f}"
+        label = f"#{track_id}"
         (label_width, label_height), _ = cv2.getTextSize(label, self.font, self.font_scale, self.line_thickness)
 
         # Draw the label centered just below the object's center
@@ -59,9 +59,9 @@ class BBox:
         # Draw a point at the center of the tracked object
         cv2.circle(self.frame, (int(x), int(y)), self.point_size, config.bbox_color[id], -1)  # Red dot
 
-    def draw_chicken_bbox(self, id, confidence, x, y, w, h):
+    def draw_chicken_bbox(self, id, x, y, w, h):
         self.draw_bbox(x, y, w, h, config.bbox_color[id])
-        self.draw_label(id, confidence, x, y)
+        self.draw_label(id, x, y)
 
     def draw_bbox_feeder(self):
         self.draw_bbox(self.feeder_bbox[0], self.feeder_bbox[1], self.feeder_bbox[2], self.feeder_bbox[3], self.feeder_border_color)

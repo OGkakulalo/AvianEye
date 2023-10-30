@@ -4,17 +4,6 @@ class VideoCapture:
     def __init__(self, video_path):
         self.video_path = video_path
         self.cap = cv2.VideoCapture(self.video_path)
-        self.start_time_offset = 0 #second
-        self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-        self.start_frame = int(self.start_time_offset * self.fps)
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.start_frame)
-        self.prev_frame_time = 0
-        self.new_frame_time = 0
-
-    def set_start_time(self, start_time_offset):
-        self.start_time_offset = start_time_offset
-        self.start_frame = int(self.start_time_offset * self.fps)
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.start_frame)
 
     def read_frame(self):
         success, frame = self.cap.read()
@@ -23,7 +12,6 @@ class VideoCapture:
         if not success:
             return None
         return frame
-
 
     def display_frame(self, frame):
         cv2.imshow("Image", frame)
@@ -41,20 +29,9 @@ class VideoCapture:
         img = self.read_frame()
         return img
 
-    def set_newFrameTime(self, new_frame_time):
-        self.new_frame_time = new_frame_time
-
-    def get_fps(self):
-        fps = 1 / (self.new_frame_time - self.prev_frame_time)
-        self.prev_frame_time = self.new_frame_time
-        return fps
-
     def is_open(self):
         return self.cap.isOpened()
 
     def release(self):
         self.cap.release()
         cv2.destroyAllWindows()
-
-    def get_current_timestamp(self):
-        return self.cap.get(cv2.CAP_PROP_POS_MSEC) / 1000  # Convert to seconds

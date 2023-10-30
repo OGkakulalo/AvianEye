@@ -1,146 +1,48 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Video Streaming</title>
-    <style>
-        /* The switch - the box around the slider */
-        .switch {
-          position: relative;
-          display: inline-block;
-          width: 60px;
-          height: 34px;
-        }
-
-        /* Hide default HTML checkbox */
-        .switch input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-
-        /* The slider */
-        .slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: #ccc;
-          -webkit-transition: .4s;
-          transition: .4s;
-        }
-
-        .slider:before {
-          position: absolute;
-          content: "";
-          height: 26px;
-          width: 26px;
-          left: 4px;
-          bottom: 4px;
-          background-color: white;
-          -webkit-transition: .4s;
-          transition: .4s;
-        }
-
-        input:checked + .slider {
-          background-color: #2196F3;
-        }
-
-        input:focus + .slider {
-          box-shadow: 0 0 1px #2196F3;
-        }
-
-        input:checked + .slider:before {
-          -webkit-transform: translateX(26px);
-          -ms-transform: translateX(26px);
-          transform: translateX(26px);
-        }
-
-        /* Rounded sliders */
-        .slider.round {
-          border-radius: 34px;
-        }
-
-        .slider.round:before {
-          border-radius: 50%;
-        }
-    </style>
-</head>
-<body>
-    <img src="/video" id="video-stream" alt="Video Stream" width="500">
-    <img src="/graph" id="plot-image" alt="Plot Image" width="500">
-
-    <label for="chicken-id">Select Chicken ID:</label>
-    <select id="chicken-id">
-        <script>
-            var numOfChicken = {{ numOfChicken }}; // Embed the Python variable value directly
-            for (var i = 1; i <= numOfChicken; i++) {
-                document.write('<option value="' + i + '">Chicken ' + i + '</option>');
-            }
-        </script>
-    </select>
-    <!-- Rounded switch -->
-    <label class="switch">
-        <input type="checkbox" id="view-all-chicken" checked>
-        <span class="slider round"></span>
-    </label>
-    <label>View all chicken</label>
-    <script>
-    var checkbox = document.getElementById('view-all-chicken');
-
-    checkbox.addEventListener('change', function() {
-        var isChecked = checkbox.checked;
-
-        // Send an HTTP request to the server to update the state
-        fetch('/update_checkbox_state', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'isChecked=' + isChecked, // Send the checkbox state as a form parameter
-        })
-        .then(response => response.text())
-        .then(data => {
-            // Handle the response from the server if needed
-            console.log('Server response:', data);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    });
-
-
-    var chickenIdSelect = document.getElementById('chicken-id');
-    var image = document.getElementById('plot-image');
-    var previousSelectedChickenId = null; // Initialize to null
-    var refreshInterval = 30000; // milliseconds
-
-    function updateGraphImage() {
-        var selectedChickenId = chickenIdSelect.value;
-        var timestamp = new Date().getTime();  // Generate a unique timestamp
-
-        // Update the image source with selected ID and timestamp as query parameters
-        image.src = "/graph?id=" + selectedChickenId + "&timestamp=" + timestamp;
-        previousSelectedChickenId = selectedChickenId; // Update the previous ID
-
-        // Set a timeout to refresh the image again after the refresh interval
-        timeoutId = setTimeout(updateGraphImage, refreshInterval);
-    }
-
-    // Start checking for graph updates when the page loads
-    updateGraphImage();
-
-    // Listen for changes in the selected ID and trigger an immediate refresh
-    chickenIdSelect.addEventListener('change', function() {
-        // Clear the existing timeout
-        clearTimeout(timeoutId);
-
-        // Call the updateGraphImage immediately
-        updateGraphImage();
-    });
-</script>
-
-
-</body>
+    <head>
+        <title>Video Streaming</title>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <div class="triangle" id="triangle-1"></div>
+        <div class="triangle" id="triangle-2"></div>
+        <div class="triangle" id="triangle-3"></div>
+        <div id="trapezoid"></div>
+        <div id="top-div">
+            <div id="logo">
+                <img src="{{ url_for('static', filename='assets/web/logo.png') }}" alt="logo">
+                <label>AvianEye</label>
+            </div>
+            <div id="selection-div">
+                <div id="slider-checkbox">
+                    <!-- Rounded switch -->
+                    <label>View all chicken</label>
+                    <label class="switch">
+                        <input type="checkbox" id="view-all-chicken" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div id="drop-down">
+                    <label for="chicken-id">Select Chicken ID:</label>
+                    <select id="chicken-id">
+                        <script>
+                            var numOfChicken = {{ numOfChicken }}; // Embed the Python variable value directly
+                            for (var i = 1; i <= numOfChicken; i++) {
+                                document.write('<option value="' + i + '">' + i + '</option>');
+                            }
+                        </script>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div id="cont-div">
+            <img src="/video" id="video-stream" alt="Video Stream" width="500">
+            <div id="graph-div">
+                <img src="{{ url_for('static', filename='assets/web/chicken_bg.png') }}" alt="chicken" id="chicken-bg">
+                <img src="/graph" id="plot-image" alt="Plot Image" width="500">
+            </div>
+        </div>
+        <script src="{{ url_for('static', filename='index.js') }}"></script>
+    </body>
 </html>

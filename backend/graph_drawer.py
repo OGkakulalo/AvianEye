@@ -77,7 +77,7 @@ class graphDrawer:
             plt.grid(True)
 
             # Save the plot as an image
-            plt.savefig(f'./static/assets/graph/chicken_{id}.png')
+            plt.savefig(f'./static/assets/graph/chicken_{id}.png', transparent=True)
             print(f"Saved graph {id} successfully")
         except Exception as e:
             print(f"Error while saving image for Chicken ID {id}: {str(e)}")
@@ -98,10 +98,16 @@ if __name__ == "__main__":
     ad = anomalyDetector(dbController)
     ids = dbController.get_distinct_id()
     gd = graphDrawer()
-
     for id in ids:
         graph = ad.detect_anomaly(id)
         if graph is not None:
             data, result, anomaly_colors, start_end_time_list, mahalanobis_dist = graph
-            gd.save_graph(id, result, data, anomaly_colors, True, start_end_time_list. mahalanobis_dist)
+            gd.save_graph(id, result, data, anomaly_colors, True, start_end_time_list, mahalanobis_dist)
+
+            # send alert if chicken is detected as high possibility to be sick
+
+            if anomaly_colors:
+                if anomaly_colors[0] == "red":
+                    print("alert is sent")
+                    ad.send_alert(id, f"./static/assets/graph/chicken_{id}.png")
 

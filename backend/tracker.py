@@ -6,7 +6,6 @@ from typing import Dict, Optional
 class Tracker:
     def __init__(self, model, dbController):
         self.tracker = "bytetrack.yaml"
-        self.frame = None
         self.results = None
         self.model = model
         self.dbController = dbController
@@ -92,10 +91,8 @@ class Tracker:
                             self.last_seen_timestamp[db_track_id] = None
                             dbController.remove_track_id_from_log(db_track_id)
 
-            print(f"all id have been taken")
             # it is within range
             # check if the track id have been previously linked with an id or not
-            print(track_id)
             previous_id = dbController.get_previous_id(track_id)
             if previous_id is not None:
                 print(f"the {previous_id} id active status is ", dbController.get_chicken_status(previous_id))

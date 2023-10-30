@@ -146,7 +146,6 @@ class DbController:
         result = self.execute_query(query)
         return [row[0] for row in result]
 
-
     def insert_chicken_id(self):
         for i in range(1, 11):
             query = f"INSERT INTO {config.chickenList} (id) VALUES (%s)"

@@ -1,0 +1,212 @@
+body {
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    font-family: cursive;
+    font-size: 35px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 30px 30px 30px 30px;
+}
+
+/*background - content*/
+#triangle-1 {
+    width: 0;
+    height: 0;
+    border-top: 550px solid #A20E20;
+    border-right: 550px solid transparent;
+    position: absolute;
+    z-index: -1;
+    left: 0;
+    top: 0;
+}
+#triangle-2 {
+    width: 0;
+    height: 0;
+    border-top: 900px solid #E4E4E4;
+    border-right: 900px solid transparent;
+    position: absolute;
+    z-index: -2;
+    left: 0;
+    bottom: 0;
+    transform: rotate(-90deg);
+}
+#triangle-3 {
+    width: 0;
+    height: 0;
+    border-top: 100px solid #ED4E62;
+    border-right: 100px solid transparent;
+    position: absolute;
+    z-index: -2;
+    right: 0;
+    bottom: 0;
+    transform: rotate(180deg);
+}
+#trapezoid {
+	border-bottom: 70px solid #E8223B;
+	border-left: 0px solid transparent;
+	border-right: 80px solid transparent;
+	height: 0;
+	width: 450px;
+	position: absolute;
+	right:0;
+	top: 0;
+	transform: rotate(180deg);
+	z-index: -1;
+}
+
+/*top div content*/
+#top-div{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+#top-div #logo{
+    display: flex;
+    align-items: center;
+}
+#top-div #logo img{
+    width:100px;
+}
+#top-div #logo label{
+    font-weight:bold;
+    font-size: 60px;
+    color: white;
+}
+#top-div #logo label{
+    margin-left: 10px;
+}
+#selection-div{
+    display: flex;
+    align-items: center;
+}
+
+#slider-checkbox, #drop-down{
+    border-radius: 25px;
+    background-color: #760E1B;
+    padding:10px 20px 10px 20px;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+}
+#slider-checkbox label, #drop-down label{
+    color: white;
+    margin-right: 10px;
+}
+#slider-checkbox{
+    margin-right: 50px;
+}
+#drop-down{
+
+}
+#drop-down select{
+    padding-left: 50px;
+    padding-right: 40px;
+    background-color: transparent;
+    border: none;
+    font-family: cursive;
+    font-size: 35px;
+    font-color: white;
+    background: url(http://cdn1.iconfinder.com/data/icons/cc_mono_icon_set/blacks/32x32/br_down.png) no-repeat right transparent;
+    -webkit-appearance: none;
+    filter: invert(100%); /* To change the color to white */
+}
+#drop-down option{
+    font-color: black;
+    background-color: white;
+}
+#drop-down option:checked,
+  #drop-down option:hover {
+   box-shadow: 0 0 10px 100px #4ddc3b inset;
+  }
+
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #7B4D52;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #3D2629;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/*content div*/
+#cont-div{
+    width: 100%;
+    display:flex;
+    justify-content: space-between;
+    padding-top: 30px;
+}
+#cont-div #video-stream{
+    width: 800px;
+    height: 500px;
+    border: 1px solid black;
+    border-radius: 25px;
+}
+#graph-div{
+    position:absolute;
+    right: -40px;
+}
+#cont-div #plot-image{
+    width: 800px;
+    height: 500px;
+}
+#chicken-bg{
+    width: 400px;
+    position:absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+}

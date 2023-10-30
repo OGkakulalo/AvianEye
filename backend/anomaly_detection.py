@@ -6,7 +6,6 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from hmmlearn.hmm import GaussianHMM
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import config
 

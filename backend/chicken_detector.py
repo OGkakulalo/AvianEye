@@ -25,7 +25,6 @@ class chickenDetector:
         self.class_mapping = self.model.names
 
         self.chickenAnalysis = chickenAnalysis(dbController)
-
         self.chickenBehaviour = chickenBehaviour(dbController)
 
         self.UPDATE_FRAME_THRESHOLD = 1 # frame
@@ -90,11 +89,11 @@ class chickenDetector:
 
             # Draw bbox based on database data and based on user option
             if config.view_all:
-                self.bbox.draw_chicken_bbox(id, confidence, x, y, w, h)
+                self.bbox.draw_chicken_bbox(id, x, y, w, h)
             else:
                 if id == config.selected_chicken_id:
 
-                    self.bbox.draw_chicken_bbox(id, confidence, x, y, w, h)
+                    self.bbox.draw_chicken_bbox(id, x, y, w, h)
 
         # Create and start threads for action detection
         threads = []

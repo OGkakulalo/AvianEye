@@ -20,7 +20,6 @@ class chickenAnalysis:
             self.prev_timestamp = current_time
             self.prev_start = False
 
-        print("time difference: ", current_time - self.prev_timestamp, "    ", self.ANALYSIS_UPDATE_THRESHOLD)
         elapse_time = current_time - self.prev_timestamp
 
         # update each id action based on the highest action value, update it every few minutes
@@ -34,15 +33,3 @@ class chickenAnalysis:
             self.dbController.insert_analysis()
             self.dbController.update_analysis()
             self.analysis_updated = 1
-
-        """
-        # perform anomaly detection
-        if self.analysis_updated > self.ANOMALY_THRESHOLD:
-            for row in self.dbController.get_chicken_id():
-                track_id = row[0]  # Access the 'id' column using integer index
-                result = self.dbController.get_analysis_data(track_id)
-                self.anomalyDetector.detect_anomaly(result)
-            self.anomalyDetector.show_graph()
-            self.anomaly_last_tracked = 0
-
-        """
