@@ -213,6 +213,7 @@ class Tracker:
                             if closest_distance < self.DISTANCE_THRESHOLD:
                                 # Assign the inactive ID to the closest new track ID
                                 dbController.update_track_id(closest_new_track_id, inactive_id)
+
                                 # Iterate through the dictionary and find items for the specific track_id
                                 x_values = None
                                 y_values = None

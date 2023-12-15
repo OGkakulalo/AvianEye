@@ -21,7 +21,6 @@ checkbox.addEventListener('change', function() {
     });
 });
 
-
 var chickenIdSelect = document.getElementById('chicken-id');
 var image = document.getElementById('plot-image');
 var previousSelectedChickenId = null; // Initialize to null
@@ -50,3 +49,4 @@ chickenIdSelect.addEventListener('change', function() {
     // Call the updateGraphImage immediately
     updateGraphImage();
 });
+

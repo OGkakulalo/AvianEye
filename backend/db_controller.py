@@ -79,10 +79,10 @@ class DbController:
         else:
             return None
 
-    def insert_log(self, track_id, action):
+    def insert_log(self, id, action):
         query = f"INSERT INTO {config.chickenActionLog} (id, action, timestamp) VALUES (%s, %s, %s)"
         values = (
-            track_id,
+            id,
             action,
             datetime.datetime.now()
         )
@@ -106,7 +106,7 @@ class DbController:
         query = f"DELETE FROM {config.chickenActionLog} WHERE id = {id} ORDER BY timestamp DESC LIMIT 1"
         self.execute_query(query)
 
-    def update_analysis(self):
+    def update_analysis(self, MIN_ACTION_COUNT):
         query = f"SELECT * FROM {config.actionTable}"
         result = self.execute_query(query)
 
@@ -117,7 +117,7 @@ class DbController:
             max_action_count = max(row[1:])
 
             # make sure that the action happen frequently enough for it to be added to analysis
-            if max_action_count > 20:
+            if max_action_count > MIN_ACTION_COUNT:
                 action_names = ['inactivity', 'eating', 'drinking']
                 max_action = action_names[row.index(max_action_count) - 1]  # Map the index to the corresponding action name
 

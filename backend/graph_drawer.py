@@ -1,7 +1,5 @@
 import os
 import matplotlib.pyplot as plt
-from backend.anomaly_detection import anomalyDetector
-from backend.db_controller import DbController
 
 
 class graphDrawer:
@@ -64,10 +62,9 @@ class graphDrawer:
             plt.legend()
             plt.show()"""
 
-            # Add the legend to the plot
-            # Add the legend to the plot and specify the coordinates for its position
-            plt.legend(loc="upper right")  # You can try different 'loc' values
-            plt.legend(loc=(0.8, 0.85))  # You can adjust these coordinates to position the legend
+            # Add the legend to the plot and the coordinates for its position
+            plt.legend(loc="upper right")
+            plt.legend(loc=(0.8, 0.85))
 
             # Customize the plot
             plt.title(f'Chicken Activity Analysis (ID: {id})')
@@ -90,24 +87,4 @@ class graphDrawer:
             print(f"Deleted graph {id} successfully")
         else:
             print(f"File {file_path} does not exist, so it cannot be deleted.")
-
-# for developer
-if __name__ == "__main__":
-    dbController = DbController()
-    dbController.connect()
-    ad = anomalyDetector(dbController)
-    ids = dbController.get_distinct_id()
-    gd = graphDrawer()
-    for id in ids:
-        graph = ad.detect_anomaly(id)
-        if graph is not None:
-            data, result, anomaly_colors, start_end_time_list, mahalanobis_dist = graph
-            gd.save_graph(id, result, data, anomaly_colors, True, start_end_time_list, mahalanobis_dist)
-
-            # send alert if chicken is detected as high possibility to be sick
-
-            if anomaly_colors:
-                if anomaly_colors[0] == "red":
-                    print("alert is sent")
-                    ad.send_alert(id, f"./static/assets/graph/chicken_{id}.png")
 

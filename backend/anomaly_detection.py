@@ -1,6 +1,6 @@
+from datetime import datetime
 import os
 from email.mime.image import MIMEImage
-
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -8,11 +8,13 @@ from hmmlearn.hmm import GaussianHMM
 import smtplib
 from email.mime.multipart import MIMEMultipart
 import config
+from graph_drawer import graphDrawer
 
 
 class anomalyDetector:
     def __init__(self, dbController):
         self.dbController = dbController
+        self.graph_drawer = graphDrawer()
 
         # Define the minimum consecutive anomaly duration
         self.MIN_CONSECUTIVE_ANOMALIES = 6  # 1 data point every 5 minutes
@@ -22,7 +24,7 @@ class anomalyDetector:
         self.HIGH_POSSIBILITY = 7200  # second
 
         # threshold for how long anomaly data to not be detected before resetting
-        self.RESET_ANOMALIES_DURATION_THRESHOLD = 1800  # second
+        self.RESET_ANOMALIES_DURATION_THRESHOLD = 900  # second
         self.MAHALANOBIS_DIST_DIFF_THRESHOLD = 0.2
 
         self.consecutive_record = []
@@ -33,6 +35,9 @@ class anomalyDetector:
         self.add_counter = 0
         self.total_anomalies_duration = 0
         self.prev_end_time = None
+
+        self.anomaly_sent = {}
+        self.SEND_THRESHOLD = 3600  # second
 
     def detect_anomaly(self, id):
         try:
@@ -132,8 +137,8 @@ class anomalyDetector:
                     anomaly_colors.append("green")
                     config.bbox_color[id] = config.green_color
                     print(f"anomaly detected low possibility for {id}")
-
             return data, result, anomaly_colors, self.start_end_time_list, mahalanobis_dist
+
         except Exception as e:
             print(f"Error while detecting anomalies: {e}")
             return None
@@ -162,11 +167,30 @@ class anomalyDetector:
             self.add_counter += 1
         self.prev_end_time = time_ended
 
+    def detect_anomaly_all(self, ids):
+        # check for anomaly and draw the graph
+        for id in ids:
+            graph = self.detect_anomaly(id)
+            if graph is not None:
+                data, result, anomaly_colors, start_end_time_list, mahalanobis_dist = graph
+                self.graph_drawer.save_graph(id, result, data, anomaly_colors, True, start_end_time_list, mahalanobis_dist)
+
+                # send alert if chicken is detected as high possibility to be sick only once and resend again if it happen after the threshold
+                if anomaly_colors:
+                    if anomaly_colors[0] == "red":
+                        if id not in self.anomaly_sent:
+                            self.anomaly_sent[id] = datetime.now()
+                            self.send_alert(id, f"./static/assets/graph/chicken_{id}.png")
+                        else:
+                            if (datetime.now() - self.anomaly_sent[id]).total_seconds() > self.SEND_THRESHOLD:
+                                self.anomaly_sent[id] = datetime.now()
+                                self.send_alert(id, f"./static/assets/graph/chicken_{id}.png")
+
     def send_alert(self, id, graph_path):
         # Email configuration
         sender_email = "chengteo123@gmail.com"
         receiver_email = "chenglickliang@gmail.com"  # Replace with the recipient's email address
-        password = "krbf ssik hkxi mnzu"  # Replace with your Gmail password
+        password = "krbf ssik hkxi mnzu"  # Admin password
 
         # Create a message
         message = MIMEMultipart()

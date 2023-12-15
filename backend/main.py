@@ -1,6 +1,5 @@
 import logging
 import os
-
 import cv2
 import config
 from chicken_detector import chickenDetector
@@ -11,9 +10,8 @@ from bbox import BBox
 from db_controller import DbController
 from anomaly_detection import anomalyDetector
 import torch
-import threading
 import time
-
+import threading
 from flask import Flask, render_template, Response, send_file, request
 from flask_socketio import SocketIO
 
@@ -59,8 +57,8 @@ def start_process():
     # Initialize the bbox object
     bbox = BBox()
 
-    hour = 17
-    minute = 50
+    hour = 12
+    minute = 28
     date = 20230905
     exit_video = False
     anomaly_detection_start = False
@@ -70,8 +68,8 @@ def start_process():
     analysis_start_no_anomaly = time.time()
     initial_graph_plot = time.time()
     ANALYSIS_THRESHOLD = 30  # second
-    INITIAL_GRAPH_PLOT_NO_ANOMALY_THRESHOLD = 300  # second
-    INITIAL_GRAPH_PLOT_THRESHOLD = 1800  # second
+    INITIAL_GRAPH_PLOT_NO_ANOMALY_THRESHOLD = 600  # second
+    INITIAL_GRAPH_PLOT_THRESHOLD = 2400  # second
 
     while not exit_video:
         try:
@@ -87,7 +85,6 @@ def start_process():
                     frame = video_capture.read_frame()
 
                     if frame is None:  # Check if we've reached the end of the video
-                        video_capture.release()  # Release the current video capture
                         minute += 1  # Move to the next minute
 
                         if minute >= 60:
@@ -119,6 +116,10 @@ def start_process():
                                 if has_cleared:
                                     has_cleared = False
                                     # reset the objects when it day time again
+                                    anomaly_detection_start = False
+                                    analysis_start = time.time()
+                                    analysis_start_no_anomaly = time.time()
+                                    initial_graph_plot = time.time()
                                     dbController = DbController()
                                     dbController.connect()
                                     dbController.insert_chicken_id()
@@ -140,28 +141,21 @@ def start_process():
                                         ids = dbController.get_distinct_id()
 
                                         # check for anomaly and draw the graph
-                                        for id in ids:
-                                            graph = anomaly_detector.detect_anomaly(id)
-                                            if graph is not None:
-                                                data, result, anomaly_colors, start_end_time_list, mahalanobis_dist = graph
-                                                graph_drawer.save_graph(id, result, data, anomaly_colors, True,
-                                                                        start_end_time_list, mahalanobis_dist)
-                                                # send alert if chicken is detected as high possibility to be sick
-                                                if anomaly_colors:
-                                                    if anomaly_colors[0] == "red":
-                                                        anomaly_detector.send_alert(id,f"./static/assets/graph/chicken_{id}.png")
+                                        anomaly_detector.detect_anomaly_all(ids)
 
-                                # save plain graph after enough data is gathered
-                                if time.time() - initial_graph_plot > INITIAL_GRAPH_PLOT_NO_ANOMALY_THRESHOLD and not anomaly_detection_start:
-                                    if time.time() - analysis_start_no_anomaly > ANALYSIS_THRESHOLD:
-                                        analysis_start_no_anomaly = time.time()
-                                        ids = dbController.get_distinct_id()
+                                # if anomaly detection havent start yet, show the plain graph
+                                if not anomaly_detection_start:
+                                    # save plain graph after enough data is gathered
+                                    if time.time() - initial_graph_plot > INITIAL_GRAPH_PLOT_NO_ANOMALY_THRESHOLD:
+                                        if time.time() - analysis_start_no_anomaly > ANALYSIS_THRESHOLD:
+                                            analysis_start_no_anomaly = time.time()
+                                            ids = dbController.get_distinct_id()
 
-                                        for id in ids:
-                                            # Fetch data for the current chicken ID
-                                            result = dbController.get_analysis_data(id)
-                                            if result:
-                                                graph_drawer.save_graph(id, result)
+                                            for id in ids:
+                                                # Fetch data for the current chicken ID
+                                                result = dbController.get_analysis_data(id)
+                                                if result:
+                                                    graph_drawer.save_graph(id, result)
                             else:
                                 if not has_cleared:
                                     has_cleared = True
@@ -272,4 +266,4 @@ if __name__ == "__main__":
     task = threading.Thread(target=start_process)
 
     task.start()
-    app.run(host="192.168.1.104", port=5000, debug=False)
+    app.run(host="100.69.153.156", port=5000, debug=False)

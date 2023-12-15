@@ -10,7 +10,7 @@ class chickenBehaviour:
         self.bbox = BBox()
         self.dbController = dbController
 
-        self.EATING_TO_INACTIVE_THRESHOLD = 10 * config.speed_ratio  # second
+        self.EATING_TO_INACTIVE_THRESHOLD = 30 * config.speed_ratio  # second
         self.DRINKING_TO_INACTIVE_THRESHOLD = 10 * config.speed_ratio  # second
         self.MOVING_THRESHOLD = 1  # pixel
         self.INACTIVITY_THRESHOLD = 20 * config.speed_ratio * config.speed_ratio  # second
@@ -28,7 +28,7 @@ class chickenBehaviour:
         self.drinking_timer = {i: datetime.now() for i in range(1, config.chicken_num + 1)}
 
     def update_threshold(self):
-        self.EATING_TO_INACTIVE_THRESHOLD = 10 * config.speed_ratio  # second
+        self.EATING_TO_INACTIVE_THRESHOLD = 30 * config.speed_ratio  # second
         self.DRINKING_TO_INACTIVE_THRESHOLD = 10 * config.speed_ratio  # second
         self.INACTIVITY_THRESHOLD = 20 * config.speed_ratio * config.speed_ratio  # second
         self.MOVEMENT_TIME_WINDOW = 20 * config.speed_ratio  # second
@@ -118,6 +118,7 @@ class chickenBehaviour:
 
                         # Fetch all actions from the database within the time range except for inactivity
                         recorded_action = dbController.get_action_log(id, start_time, end_time, "inactivity")
+
                         if recorded_action is not None:
                             drinking_count = recorded_action.count("drinking")
                             eating_count = recorded_action.count("eating")
@@ -180,6 +181,7 @@ class chickenBehaviour:
                 if recorded_action is not None:
                     eating_count = recorded_action.count("eating")
                     drinking_count = recorded_action.count("drinking")
+
                     dbController.decrement_action_by_value(id, eating_count, "eating")
                     dbController.decrement_action_by_value(id, drinking_count, "drinking")
 

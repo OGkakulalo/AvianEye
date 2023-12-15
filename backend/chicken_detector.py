@@ -1,5 +1,4 @@
 import threading
-
 from ultralytics import YOLO
 
 import config
@@ -27,7 +26,6 @@ class chickenDetector:
         self.chickenAnalysis = chickenAnalysis(dbController)
         self.chickenBehaviour = chickenBehaviour(dbController)
 
-        self.UPDATE_FRAME_THRESHOLD = 1 # frame
         self.last_frame_checked = 0
 
         # Create a Lock instance
@@ -101,7 +99,7 @@ class chickenDetector:
         # detect action every few second to increase speed
         self.last_frame_checked += 1
         can_check_action = False
-        if self.last_frame_checked > self.UPDATE_FRAME_THRESHOLD:
+        if self.last_frame_checked > config.update_action_threshold:
             self.last_frame_checked = 0
             can_check_action = True
 
